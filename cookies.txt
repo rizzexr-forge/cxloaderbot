@@ -1,0 +1,12 @@
+# Netscape HTTP Cookie File
+# https://curl.se/docs/http-cookies.html
+# This file was generated for yt-dlp. Edit at your own risk.
+
+.youtube.com	TRUE	/	TRUE	0	__Secure-1PSID	g.a000qQiOItklm1wqyroFYjIaVOOZySFl2xGKNWIYECIupHmiNy8k2uDalD4z-8Cf-y3YmCaJDAACgYKAUsSARMSFQHGX2Mia20GjuWTglws13_Eh4TKqRoVAUF8yKpoD0pkn5Gnt2rtItow4tJ20076
+.youtube.com	TRUE	/	TRUE	0	__Secure-3PSID	g.a000qQiOItklm1wqyroFYjIaVOOZySFl2xGKNWIYECIupHmiNy8kskfnbisilifz0TS7w8sWjgACgYKAfQSARMSFQHGX2MiDJYY4-nJZZQbXsEb4KlRbxoVAUF8yKqnchTNCgNfv92Twzf-nJw80076
+.youtube.com	TRUE	/	FALSE	0	SID	g.a000qQiOItklm1wqyroFYjIaVOOZySFl2xGKNWIYECIupHmiNy8kBCx3SJykrgVV9jqQZl7etwACgYKAdESARMSFQHGX2Mi2nhgwQhHlrOqIOj1t3-LgRoVAUF8yKrPMbhJafkGzFUILdselNey0076
+.youtube.com	TRUE	/	FALSE	0	HSID	AQuvjNU8of2foz-wK
+.youtube.com	TRUE	/	FALSE	0	SAPISID	KalQe2H9T-9oMUmY/Am3m90kNnp86KQAwN
+.youtube.com	TRUE	/	FALSE	0	APISID	p2YDVlO3xEVSC684/AebsLLup60MRcgvDQ
+.youtube.com	TRUE	/	FALSE	0	LOGIN_INFO	AFmmF2swRQIgCB_lNBgNxu2sxhVpaQq-da_AkBEwjivoJbkt0OOx0rACIQDUQDPO7qn1kP4ibp3ctFo56mxhOcjx5Ghq-qyU9fkcyg:QUQ3MjNmdzRhVW0xRThJUGZRMjNMS2VNMUNsWU9udE1qUjYxdkRjZy1yUnU1SjhNQldtSVhvVlpOb29yZHo0N2xNdG5nWUJxcmZENWxROFdrZUN3bGhaRS1JbFJyZ2UtRXRDOEk5NXo1bDRybHBjcENkVmJRdGdPMFdFV3NJMVIwRzNVYXBnM2NpSkFIQm5keGd3bXhTeEpUdFhGLXBuRVlR
+.youtube.com	TRUE	/	FALSE	0	PREF	tz=Europe.Kiev&f4=4000000

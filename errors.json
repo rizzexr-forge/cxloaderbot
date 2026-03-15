@@ -1,0 +1,18 @@
+[
+    {
+        "timestamp": "2026-03-15T23:05:04.011037",
+        "user_id": 8164769339,
+        "platform": "youtube",
+        "media_type": "video",
+        "url": "https://youtu.be/XVFh1Lz3B-g?si=sjiDRdpI7PTcQedi",
+        "error": "yt-dlp не сохранил файл. Возможно, контент недоступен."
+    },
+    {
+        "timestamp": "2026-03-15T23:39:52.588534",
+        "user_id": 8164769339,
+        "platform": "youtube",
+        "media_type": "video",
+        "url": "https://youtu.be/XVFh1Lz3B-g?si=sjiDRdpI7PTcQedi",
+        "error": "yt-dlp не сохранил файл. Возможно, контент недоступен."
+    }
+]
