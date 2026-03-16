@@ -585,7 +585,7 @@ async def perform_download(
                 if ext in ('.jpg', '.jpeg', '.png', '.webp'):
                     await message.answer_photo(photo=file_obj, caption=caption, parse_mode="HTML")
                 elif media_type == 'video' or ext in ('.mp4', '.mov', '.avi', '.mkv'):
-                    await message.answer_video(video=file_obj, caption=caption, parse_mode="HTML")
+                    await message.answer_video(video=file_obj, caption=caption, parse_mode="HTML", supports_streaming=True)
                 else:
                     await message.answer_audio(audio=file_obj, caption=caption, parse_mode="HTML")
 
