@@ -1,99 +1,112 @@
-import aiosqlite
-import os
+import aiomysql
 import logging
+
+from app.config import config
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'users_data.sqlite')
-
-# Reusable connection holder — avoids opening/closing on every query
-_db_conn: aiosqlite.Connection | None = None
-
-
-async def _get_db() -> aiosqlite.Connection:
-    """Get or create a persistent database connection."""
-    global _db_conn
-    if _db_conn is None:
-        _db_conn = await aiosqlite.connect(DB_PATH)
-        _db_conn.row_factory = aiosqlite.Row
-        await _db_conn.execute("PRAGMA journal_mode=WAL")  # Better concurrent perf
-        await _db_conn.execute("PRAGMA busy_timeout=5000")
-        logger.info("Database connection established: %s", DB_PATH)
-    return _db_conn
-
-
-async def close_db():
-    """Close the persistent database connection."""
-    global _db_conn
-    if _db_conn is not None:
-        await _db_conn.close()
-        _db_conn = None
-        logger.info("Database connection closed")
+# Connection pool — reused across the entire bot lifetime
+_pool: aiomysql.Pool | None = None
 
 
 async def init_db():
-    db = await _get_db()
-    await db.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            youtube_downloads INTEGER DEFAULT 0,
-            tiktok_downloads INTEGER DEFAULT 0,
-            instagram_downloads INTEGER DEFAULT 0,
-            spotify_downloads INTEGER DEFAULT 0
-        )
-    """)
-    await db.commit()
-    logger.info("Database initialized")
+    """Create connection pool and ensure the users table exists."""
+    global _pool
+    _pool = await aiomysql.create_pool(
+        host=config.db_host,
+        port=config.db_port,
+        db=config.db_name,
+        user=config.db_user,
+        password=config.db_pass,
+        minsize=2,
+        maxsize=10,
+        autocommit=True
+    )
+    logger.info("Database pool created (%s@%s:%s/%s)", config.db_user, config.db_host, config.db_port, config.db_name)
+
+    async with _pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    user_id BIGINT PRIMARY KEY,
+                    youtube INTEGER DEFAULT 0,
+                    tiktok INTEGER DEFAULT 0,
+                    instagram INTEGER DEFAULT 0,
+                    spotify INTEGER DEFAULT 0,
+                    registration_date DATE DEFAULT (CURRENT_DATE),
+                    premium BOOLEAN DEFAULT FALSE,
+                    `ban` BOOLEAN DEFAULT FALSE
+                )
+            """)
+    logger.info("Table 'users' ensured")
+
+
+async def close_db():
+    """Close the connection pool."""
+    global _pool
+    if _pool is not None:
+        _pool.close()
+        await _pool.wait_closed()
+        _pool = None
+        logger.info("Database pool closed")
 
 
 async def add_user(user_id: int):
-    db = await _get_db()
-    await db.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
-    await db.commit()
+    """Insert a new user if not already present."""
+    async with _pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT IGNORE INTO users (user_id) VALUES (%s)",
+                (user_id,),
+            )
 
 
 async def increment_stat(user_id: int, platform: str):
-    valid_platforms = ('youtube', 'tiktok', 'instagram', 'spotify')
-    if platform not in valid_platforms:
+    """Increment download counter for the given platform."""
+    valid = ('youtube', 'tiktok', 'instagram', 'spotify')
+    if platform not in valid:
         return
-
-    db = await _get_db()
-    await db.execute(
-        f"UPDATE users SET {platform}_downloads = {platform}_downloads + 1 WHERE user_id = ?",
-        (user_id,)
-    )
-    await db.commit()
+    async with _pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"UPDATE users SET {platform} = {platform} + 1 WHERE user_id = %s",
+                (user_id,),
+            )
 
 
 async def get_user_stats(user_id: int) -> dict | None:
-    db = await _get_db()
-    async with db.execute(
-        "SELECT youtube_downloads, tiktok_downloads, instagram_downloads, spotify_downloads "
-        "FROM users WHERE user_id = ?", (user_id,)
-    ) as cursor:
-        row = await cursor.fetchone()
-        if row:
-            yt, tt, ig, sp = row[0], row[1], row[2], row[3]
-            return {
-                'youtube': yt, 'tiktok': tt,
-                'instagram': ig, 'spotify': sp,
-                'total': yt + tt + ig + sp
-            }
-        return None
+    """Return download stats for one user."""
+    async with _pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT youtube, tiktok, instagram, spotify FROM users WHERE user_id = %s",
+                (user_id,),
+            )
+            row = await cur.fetchone()
+    if row:
+        yt, tt, ig, sp = row['youtube'], row['tiktok'], row['instagram'], row['spotify']
+        return {
+            'youtube': yt, 'tiktok': tt,
+            'instagram': ig, 'spotify': sp,
+            'total': yt + tt + ig + sp,
+        }
+    return None
 
 
 async def get_total_stats() -> dict:
-    db = await _get_db()
-    async with db.execute(
-        "SELECT COALESCE(SUM(youtube_downloads),0), COALESCE(SUM(tiktok_downloads),0), "
-        "COALESCE(SUM(instagram_downloads),0), COALESCE(SUM(spotify_downloads),0) FROM users"
-    ) as cursor:
-        row = await cursor.fetchone()
-        if row:
-            yt, tt, ig, sp = row[0], row[1], row[2], row[3]
-            return {
-                'youtube': yt, 'tiktok': tt,
-                'instagram': ig, 'spotify': sp,
-                'total': yt + tt + ig + sp
-            }
-        return {'youtube': 0, 'tiktok': 0, 'instagram': 0, 'spotify': 0, 'total': 0}
+    """Return aggregate download stats across all users."""
+    async with _pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                "SELECT COALESCE(SUM(youtube),0) AS yt, COALESCE(SUM(tiktok),0) AS tt, "
+                "COALESCE(SUM(instagram),0) AS ig, COALESCE(SUM(spotify),0) AS sp FROM users"
+            )
+            row = await cur.fetchone()
+    if row:
+        yt, tt, ig, sp = row['yt'], row['tt'], row['ig'], row['sp']
+        return {
+            'youtube': yt, 'tiktok': tt,
+            'instagram': ig, 'spotify': sp,
+            'total': int(yt + tt + ig + sp),
+        }
+    return {'youtube': 0, 'tiktok': 0, 'instagram': 0, 'spotify': 0, 'total': 0}

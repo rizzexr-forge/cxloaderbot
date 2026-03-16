@@ -3,4 +3,5 @@ pydantic-settings>=2.2.1
 yt-dlp>=2023.12.30
 imageio-ffmpeg>=0.4.9
 aiohttp>=3.9.3
-aiosqlite>=0.20.0
+aiomysql>=0.2.0
+cryptography
